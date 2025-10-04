@@ -1,0 +1,53 @@
+#!/bin/bash
+
+#get input file to use as picture
+pic=$(realpath "$1")
+
+#Path to pywal file that contains feh settings
+thepath="/home/limited/.local/lib/python3.13/site-packages/pywal/wallpaper.py"
+
+#identify is a program that gets informaiton about a certain image such as heigh
+height=$(identify -format "%h" "$pic")
+fehbg=$(grep -oP 'bg-\w+' "$thepath")
+
+#configures the pywal command's "wallpaper.py" file to change the feh settings
+if [ "$fehbg" = "bg-center" ]; then
+
+        if [ "$height" -ge "1080" ]; then
+                sudo sed -i "s|bg-center|bg-max|" "$thepath"
+
+        elif [ "$height" -le "500" ]; then
+                sudo sed -i "s|bg-center|bg-tile|" "$thepath"
+        fi
+
+elif [ "$fehbg" = "bg-max" ]; then
+
+        if [ "$height" -lt "1080" ] && [ "$height" -gt "500" ]; then
+                sudo sed -i "s|bg-max|bg-center|" "$thepath"
+        elif [ "$height" -le "500" ]; then
+                sudo sed -i "s|bg-max|bg-tile|" "$thepath"
+        fi
+
+else
+        if [ "$height" -ge "1080" ]; then
+                sudo sed -i "s|bg-tile|bg-max|" "$thepath"
+
+        elif [ "$height" -lt "1080" ] && [ "$height" -gt "500" ]; then
+                sudo sed -i "s|bg-tile|bg-center|" "$thepath"
+        fi
+fi
+
+wal -i "$pic"
+
+#update variable after if statements to prepare for .xinitrc
+fehbg=$(grep -oP 'bg-\w+' "$thepath")
+
+sed 's/^/"/; s/$/",/' /home/limited/.cache/wal/colors > /home/limited/programs/other/colors_terminal
+
+sed -i "s|feh.*|feh --${fehbg} ${pic}|" /home/limited/.xinitrc
+
+sudo make clean install -C /home/limited/programs/st
+
+echo "--------------------------"
+echo "image pixel height: $height"
+~
